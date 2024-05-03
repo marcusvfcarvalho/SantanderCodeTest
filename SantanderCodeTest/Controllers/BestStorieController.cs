@@ -87,7 +87,6 @@ public class BestStoriesController(IMemoryCache cache,
         return new List<StoryDetail>();
     }
 
-
     async Task<StoryEntry?> CallEndpointAsync(int id)
     {
         
@@ -132,6 +131,4 @@ public class BestStoriesController(IMemoryCache cache,
         return dateTime;
     }
 }
-
-
 public record StoryEntry(int Id, StoryDetail StoryDetail);
