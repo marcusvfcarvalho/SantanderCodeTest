@@ -3,7 +3,7 @@
 ## Overview
 This project is a test implementation of a web API controller (BestStoriesController) that fetches and presents data from the Hacker News API. It retrieves the best stories, along with their details like title, URL, score, and more.
 
-# Usage
+## Usage
 Clone the repository:
 ```bash
 https://github.com/marcusvfcarvalho/SantanderCodeTest.git
@@ -33,3 +33,15 @@ In an ideal scenario, when able to have different services available, I would op
 Additionally, I would implement a background process or task to continuously pull data from the Hacker News API at regular intervals. This background process would run independently of the main application logic, ensuring that our application remains responsive and resilient even during high traffic or when the third-party API experiences downtime or slowdowns.
 
 By decoupling the data retrieval process from the controller and introducing a distributed cache solution along with a background data fetching mechanism, we can achieve a more scalable, reliable, and maintainable architecture. This approach not only improves the performance of our application but also enhances its fault tolerance and adaptability to changes in the external API.
+
+## Performace
+Performance tests were conducted utilizing the Postman Runner feature, employing 20, 40, 80, and 100 virtual users. The average response time remained consistent, with outliers such as initial cache filling excluded from the analysis.
+| Virtual Users | Total Requests | Requests/s | Resp. Time (Avg. ms) | Min | Max | 90th(ms) | Error % |
+|---------------|----------------|------------|----------------------|-----|-----|----------|---------|
+| 20            | 2119           | 15.90      | 5                    | 2   | 311 | 5        | 0.0     |
+| 40            | 4241           | 31.82      | 6                    | 2   | 402 | 5        | 0.0     |
+| 80            | 8283           | 61.51      | 6                    | 2   | 506 | 5        | 0.0     |
+| 100           | 10098          | 75.76      | 6                    | 2   | 422 | 6        | 0.0     |
+
+## Resilience
+The solution was designed to be resilient. It should never fail if the Hacker News API becomes inaccessible. Even if an issue arises between the calls to the "best stories" endpoint and the "details" endpoint, the API should still provide a response using the most recent known data. If the local cache for details doesn't contain the ID of a story found in the "best stories" cache, it should gracefully handle the situation by skipping the missing detail. In this hypothetical scenario, once Hacker News is back online, subsequent requests will fetch up-to-date data.
