@@ -5,7 +5,7 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SantanderCodeTest", "SantanderCodeTest\SantanderCodeTest.csproj", "{9C3A9725-1216-4D26-84A0-92914BB21D40}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SantanderCostTest.Tests", "SantanderCostTest.Tests\SantanderCostTest.Tests.csproj", "{BBC4E0A8-2CF4-4188-9BE1-3F10E3A017CE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SantanderCodeTest.Tests", "SantanderCodeTest.Tests\SantanderCodeTest.Tests.csproj", "{02E8D17C-E0E0-4171-9835-D491BEBFAF84}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{9C3A9725-1216-4D26-84A0-92914BB21D40}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C3A9725-1216-4D26-84A0-92914BB21D40}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C3A9725-1216-4D26-84A0-92914BB21D40}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BBC4E0A8-2CF4-4188-9BE1-3F10E3A017CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BBC4E0A8-2CF4-4188-9BE1-3F10E3A017CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BBC4E0A8-2CF4-4188-9BE1-3F10E3A017CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BBC4E0A8-2CF4-4188-9BE1-3F10E3A017CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02E8D17C-E0E0-4171-9835-D491BEBFAF84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02E8D17C-E0E0-4171-9835-D491BEBFAF84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02E8D17C-E0E0-4171-9835-D491BEBFAF84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02E8D17C-E0E0-4171-9835-D491BEBFAF84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

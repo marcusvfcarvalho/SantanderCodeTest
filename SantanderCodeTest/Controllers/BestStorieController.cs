@@ -40,14 +40,22 @@ public class BestStoriesController(IMemoryCache cache,
                     string responseBody = await response.Content.ReadAsStringAsync();
                     idList = JsonConvert.DeserializeObject<List<int>>(responseBody)!;
                     cache.Set("best-stories", idList, new DateTimeOffset(DateTime.Now.AddMinutes(ExpirationInMinutes)));
+                    cache.Set("best-stories-backup", idList);
                     filtered = idList.Take(Math.Min(idList.Count, limit)).ToList();
 
                 }
             }
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException )
         {
-            logger.LogError("Error: {message}", ex.Message);
+            if(cache.TryGetValue("best-stories-backup", out List<int>? cachedBestStories))
+            {
+                cache.Set("best-stories", cachedBestStories, new DateTimeOffset(DateTime.Now.AddMinutes(ExpirationInMinutes)));
+                filtered = cachedBestStories!.Take(Math.Min(cachedBestStories.Count, limit)).ToList();
+            } else
+            {
+                return stories;
+            }
         }
 
         List<Task<StoryEntry?>> tasks = [];
@@ -71,7 +79,7 @@ public class BestStoriesController(IMemoryCache cache,
 
             foreach (var task in tasks)
             {
-                if (task.Result!.StoryDetail != null)
+                if (task.Result?.StoryDetail != null)
                 {
                     stories.Add(task.Result!.StoryDetail);
                     cache.Set(task.Result!.Id, task.Result!.StoryDetail);
