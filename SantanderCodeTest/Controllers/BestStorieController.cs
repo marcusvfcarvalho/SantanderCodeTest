@@ -107,14 +107,14 @@ public class BestStoriesController(IMemoryCache cache,
                 string responseBody = await response.Content.ReadAsStringAsync();
                 var hackerNewsItem = JsonConvert.DeserializeObject<HackerNewsItem>(responseBody)!;
 
-                return new StoryEntry(Id: id, new StoryDetail()
+                return new StoryEntry(id, new StoryDetail()
                 {
                     Uri = hackerNewsItem.Url,
                     Title = hackerNewsItem.Title,
-                    CommentCount=hackerNewsItem.Descendants,
-                    PostedBy=hackerNewsItem.By,
-                    Score=hackerNewsItem.Score,
-                    Time= hackerNewsItem!.Time != null ? UnixTimeStampToDateTime(hackerNewsItem.Time!.Value) : null
+                    CommentCount = hackerNewsItem.Descendants,
+                    PostedBy = hackerNewsItem.By,
+                    Score = hackerNewsItem.Score,
+                    Time = hackerNewsItem!.Time != null ? UnixTimeStampToDateTime(hackerNewsItem.Time!.Value) : null
                 });
             }
             else
@@ -128,13 +128,12 @@ public class BestStoriesController(IMemoryCache cache,
             logger.LogError("Request exception: {message}", e.Message);
         }
 
-
         return null;
     }
 
     public static DateTime UnixTimeStampToDateTime(long unixTimeStamp)
     {
-        DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+        DateTime dateTime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         dateTime = dateTime.AddSeconds(unixTimeStamp).ToLocalTime();
         return dateTime;
     }
