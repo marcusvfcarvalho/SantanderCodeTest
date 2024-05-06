@@ -16,6 +16,7 @@ public class BestStoriesController(IMemoryCache cache,
     private readonly HttpClient httpClient = httpClient;
 
     private const int ExpirationInMinutes = 1;
+    private const int ExpirationInHours = 4;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<StoryDetail>>> BestStoriesAsync([FromQuery] int limit = 10)
@@ -51,7 +52,7 @@ public class BestStoriesController(IMemoryCache cache,
             if(cache.TryGetValue("best-stories-backup", out List<int>? cachedBestStories))
             {
                 cache.Set("best-stories", cachedBestStories, new DateTimeOffset(DateTime.Now.AddMinutes(ExpirationInMinutes)));
-                filtered = cachedBestStories!.Take(Math.Min(cachedBestStories.Count, limit)).ToList();
+                filtered = cachedBestStories!.Take(Math.Min(cachedBestStories!.Count, limit)).ToList();
             } else
             {
                 return stories;
@@ -82,7 +83,7 @@ public class BestStoriesController(IMemoryCache cache,
                 if (task.Result?.StoryDetail != null)
                 {
                     stories.Add(task.Result!.StoryDetail);
-                    cache.Set(task.Result!.Id, task.Result!.StoryDetail);
+                    cache.Set(task.Result!.Id, task.Result!.StoryDetail, new DateTimeOffset(DateTime.Now.AddHours(ExpirationInHours)));
                 }
             }
         }
