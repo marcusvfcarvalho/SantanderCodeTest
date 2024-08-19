@@ -1,0 +1,16 @@
+@SantanderCodeTest_HostAddress = https://localhost:7176
+
+###
+
+GET {{SantanderCodeTest_HostAddress}}/api/beststories?limit=10
+
+###
+
+GET {{SantanderCodeTest_HostAddress}}/api/beststories?limit=100
+
+###
+
+GET {{SantanderCodeTest_HostAddress}}/api/beststories?limit=200
+
+###
+
