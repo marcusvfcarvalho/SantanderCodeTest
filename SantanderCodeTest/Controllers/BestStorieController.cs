@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SantanderCodeTest.DTO;
+using System.Threading;
 
 namespace SantanderCodeTest.Controllers
 {
@@ -13,60 +15,58 @@ namespace SantanderCodeTest.Controllers
         private readonly IMemoryCache memoryCache;
         private readonly ILogger<BestStoriesController> logger;
         private readonly HttpClient httpClient;
+        private readonly HackerNewsApiSettings apiSettings;
 
-        private const int CacheExpirationInMinutes = 1;
-        private const int CacheExpirationInHours = 4;
-
-        public BestStoriesController(IMemoryCache memoryCache, ILogger<BestStoriesController> logger, HttpClient httpClient)
+        public BestStoriesController(IMemoryCache memoryCache, ILogger<BestStoriesController> logger, HttpClient httpClient, IOptions<HackerNewsApiSettings> apiSettings)
         {
             this.memoryCache = memoryCache;
             this.logger = logger;
             this.httpClient = httpClient;
+            this.apiSettings = apiSettings.Value;
+        }
+
+        private async Task PopulateCache()
+        {
+            try
+            {
+                string url = $"{apiSettings.BaseUrl}{apiSettings.BestStoriesEndpoint}";
+                HttpResponseMessage response = await httpClient.GetAsync(url);
+                if (response.IsSuccessStatusCode)
+                {
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    var cacheIds = JsonConvert.DeserializeObject<List<int>>(responseBody)!;
+                    memoryCache.Set("best-stories", cacheIds, new DateTimeOffset(DateTime.Now.AddHours(apiSettings.CacheExpirationInHours)));
+                    memoryCache.Set("best-stories-backup", cacheIds);
+                    return;
+                }
+                throw new HttpRequestException();
+            }
+            catch
+            {
+                // If something fails, use previous backup values or empty
+                memoryCache.Set("best-stories", memoryCache.Get("best-stories-backup") ?? new List<int>());
+                memoryCache.Set("best-stories-backup", memoryCache.Get("best-stories-backup") ?? new List<int>());
+            }
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<StoryDetail>>> GetBestStoriesAsync([FromQuery] int limit = 10, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<IEnumerable<StoryDetail>>> GetBestStoriesAsync([FromQuery] int pageSize = 10, int page = 1, CancellationToken cancellationToken = default)
         {
-            List<StoryDetail> bestStories = [];
-            List<int> storyIds = [];
-            List<int> limitedStoryIds = [];
+            if (pageSize < 1 || page < 1)
+            {
+                return BadRequest("PageSize and Page cannot be less than 1");
+            }
 
-            try
-            {
-                if (memoryCache.TryGetValue("best-stories", out List<int>? cachedStoryIds))
-                {
-                    storyIds = cachedStoryIds!;
-                    limitedStoryIds = storyIds.Take(Math.Min(storyIds.Count, limit)).ToList();
-                }
-                else
-                {
-                    HttpResponseMessage response = await httpClient.GetAsync("https://hacker-news.firebaseio.com/v0/beststories.json", cancellationToken);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                        storyIds = JsonConvert.DeserializeObject<List<int>>(responseBody)!;
-                        memoryCache.Set("best-stories", storyIds, new DateTimeOffset(DateTime.Now.AddMinutes(CacheExpirationInMinutes)));
-                        memoryCache.Set("best-stories-backup", storyIds);
-                        limitedStoryIds = storyIds.Take(Math.Min(storyIds.Count, limit)).ToList();
-                    }
-                }
-            }
-            catch (HttpRequestException)
-            {
-                if (memoryCache.TryGetValue("best-stories-backup", out List<int>? backupStoryIds))
-                {
-                    memoryCache.Set("best-stories", backupStoryIds, new DateTimeOffset(DateTime.Now.AddMinutes(CacheExpirationInMinutes)));
-                    limitedStoryIds = backupStoryIds!.Take(Math.Min(backupStoryIds!.Count, limit)).ToList();
-                }
-                else
-                {
-                    return bestStories;
-                }
-            }
+            List<StoryDetail> bestStories = new();
+            List<int> cachedStoryIds = await GetCachedStories();
+
+            var pagedStoryIds = cachedStoryIds.Skip((page - 1) * pageSize)
+                   .Take(pageSize)
+                   .ToList();
 
             List<Task<StoryEntry?>> fetchStoryTasks = new();
 
-            foreach (int storyId in limitedStoryIds)
+            foreach (int storyId in pagedStoryIds)
             {
                 if (!memoryCache.TryGetValue(storyId, out StoryDetail? cachedStory))
                 {
@@ -78,33 +78,34 @@ namespace SantanderCodeTest.Controllers
                 }
             }
 
-            if (fetchStoryTasks.Count != 0)
-            {
-                await Task.WhenAll(fetchStoryTasks);
+            await Task.WhenAll(fetchStoryTasks);
 
-                foreach (var task in fetchStoryTasks)
-                {
-                    if (task.Result?.StoryDetail != null)
-                    {
-                        bestStories.Add(task.Result!.StoryDetail);
-                        memoryCache.Set(task.Result!.Id, task.Result!.StoryDetail, new DateTimeOffset(DateTime.Now.AddHours(CacheExpirationInHours)));
-                    }
-                }
+            foreach (var task in fetchStoryTasks.Where(x => x.Result?.StoryDetail != null))
+            {
+                bestStories.Add(task.Result!.StoryDetail);
+                memoryCache.Set(task.Result!.Id, task.Result!.StoryDetail, new DateTimeOffset(DateTime.Now.AddHours(apiSettings.CacheExpirationInHours)));
             }
 
-            if (bestStories.Count != 0)
+            return bestStories.OrderByDescending(story => story.Score).ToList();
+        }
+
+        private async Task<List<int>> GetCachedStories()
+        {
+            if (!memoryCache.TryGetValue("best-stories", out List<int>? cachedStories)) // Cache empty or expired
             {
-                return bestStories.OrderByDescending(story => story.Score).ToList();
+                await PopulateCache();
+                cachedStories = (List<int>?)memoryCache.Get("best-stories");
             }
 
-            return new List<StoryDetail>();
+            return cachedStories!;
         }
 
         private async Task<StoryEntry?> FetchStoryDetailsAsync(int storyId, CancellationToken cancellationToken)
         {
             try
             {
-                HttpResponseMessage response = await httpClient.GetAsync($"https://hacker-news.firebaseio.com/v0/item/{storyId}.json", cancellationToken);
+                string url = $"{apiSettings.BaseUrl}{string.Format(apiSettings.StoryDetailsEndpoint, storyId)}";
+                HttpResponseMessage response = await httpClient.GetAsync(url, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -121,10 +122,9 @@ namespace SantanderCodeTest.Controllers
                         Time = hackerNewsItem.Time != null ? UnixTimeStampToDateTime(hackerNewsItem.Time!.Value) : null
                     });
                 }
-                else
-                {
-                    logger.LogError("Failed to fetch story with ID: {Id}. Status code: {StatusCode}", storyId, response.StatusCode);
-                }
+
+                logger.LogError("Failed to fetch story with ID: {Id}. Status code: {StatusCode}", storyId, response.StatusCode);
+                return null;
             }
             catch (HttpRequestException e)
             {

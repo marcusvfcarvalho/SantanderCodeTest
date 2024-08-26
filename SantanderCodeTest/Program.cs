@@ -1,3 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using SantanderCodeTest.Controllers;
 
 namespace SantanderCodeTest
 {
@@ -13,13 +18,14 @@ namespace SantanderCodeTest
             builder.Services.AddControllers();
 
             builder.Services.AddEndpointsApiExplorer();
-
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddMemoryCache();
 
-            builder.Services.AddHttpClient();  
- 
+            builder.Services.AddHttpClient();
+
+            builder.Services.Configure<HackerNewsApiSettings>(builder.Configuration.GetSection("HackerNewsApiSettings"));
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -29,9 +35,7 @@ namespace SantanderCodeTest
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
 
             app.MapControllers();
 
